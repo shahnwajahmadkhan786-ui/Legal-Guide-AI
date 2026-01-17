@@ -1,6 +1,6 @@
 import ReactMarkdown from 'react-markdown';
 import { cn } from "@/lib/utils";
-import { User, Bot, Scale } from "lucide-react";
+import { User, Scale, Bot } from "lucide-react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 

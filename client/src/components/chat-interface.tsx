@@ -3,7 +3,7 @@ import { useMessages, useSendMessage } from "@/hooks/use-legal-chat";
 import { MessageBubble, LoadingBubble } from "@/components/message-bubble";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Gavel } from "lucide-react";
+import { Send, Gavel, Scale } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
