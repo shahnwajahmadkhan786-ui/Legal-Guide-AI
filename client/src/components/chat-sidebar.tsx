@@ -21,8 +21,8 @@ export function ChatSidebar({ className }: { className?: string }) {
             <Scale className="w-6 h-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-serif font-bold text-lg leading-tight text-foreground">Nyaya Sahayak</h1>
-            <p className="text-xs text-muted-foreground font-medium">Indian Legal Assistant</p>
+            <h1 className="font-serif font-bold text-lg leading-tight text-foreground">LegalAI</h1>
+            <p className="text-xs text-muted-foreground font-medium">Global Legal Assistant</p>
           </div>
         </div>
         
@@ -87,7 +87,7 @@ export function ChatSidebar({ className }: { className?: string }) {
       <div className="p-4 border-t border-border/50 bg-slate-50/50">
         <div className="bg-accent/10 rounded-md p-3 border border-accent/20">
           <p className="text-[10px] text-primary/80 leading-relaxed text-center font-medium">
-            AI-generated guidance based on Indian Law (IPC, CrPC, etc). Not a substitute for a lawyer.
+            AI-generated guidance based on global laws and constitutions. Not a substitute for a lawyer.
           </p>
         </div>
       </div>

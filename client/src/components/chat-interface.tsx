@@ -62,15 +62,14 @@ export function ChatInterface({ threadId }: ChatInterfaceProps) {
                 <Gavel className="w-8 h-8 text-primary" />
               </div>
               <h2 className="text-2xl font-serif font-bold text-foreground">
-                How can I assist you legally?
+                How can LegalAI assist you?
               </h2>
               <p className="text-muted-foreground max-w-md mx-auto">
-                I can help explain Indian laws (IPC, CrPC), draft simple legal notices, 
-                or guide you on the next steps for your situation.
+                I can explain global laws, constitutions, and legal procedures in your preferred language.
               </p>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto mt-8">
-                {["Draft a rent agreement notice", "Rights during police arrest", "Filing a consumer complaint", "Divorce proceedings overview"].map((suggestion) => (
+                {["Draft a rent agreement notice", "Rights during police arrest", "Filing a consumer complaint", "Employment law overview"].map((suggestion) => (
                   <button
                     key={suggestion}
                     onClick={() => {
@@ -125,8 +124,8 @@ export function ChatInterface({ threadId }: ChatInterfaceProps) {
               <Scale className="w-3 h-3" /> Important Disclaimer
             </AlertTitle>
             <AlertDescription className="text-amber-900/80 text-[11px] leading-relaxed">
-              This information is for general legal awareness based on Indian law and does not constitute legal advice. 
-              Always consult a qualified advocate for advice specific to your facts and circumstances.
+              This information is for general legal awareness and does not constitute legal advice. 
+              Always consult a qualified advocate in your jurisdiction for advice specific to your situation.
             </AlertDescription>
           </Alert>
         </div>

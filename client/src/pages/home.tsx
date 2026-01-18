@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, MessageSquarePlus } from "lucide-react";
 import { useRoute, useLocation } from "wouter";
 import { useCreateThread, useThreads } from "@/hooks/use-legal-chat";
+import { ThemeToggle } from "@/components/theme-provider";
 
 export default function Home() {
   const [match, params] = useRoute("/thread/:id");
@@ -51,18 +52,26 @@ export default function Home() {
                 <ChatSidebar />
               </SheetContent>
             </Sheet>
-            <span className="font-serif font-bold text-foreground">Nyaya Sahayak</span>
+            <span className="font-serif font-bold text-foreground">LegalAI</span>
           </div>
           
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => createThread()}
-            disabled={isCreating}
-            className="text-primary"
-          >
-            <MessageSquarePlus className="h-6 w-6" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => createThread()}
+              disabled={isCreating}
+              className="text-primary"
+            >
+              <MessageSquarePlus className="h-6 w-6" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Desktop Header Overlay (for Theme Toggle) */}
+        <div className="hidden md:flex absolute top-4 right-8 z-50 items-center gap-2">
+          <ThemeToggle />
         </div>
 
         {/* Chat Interface or Loading State */}
@@ -70,7 +79,7 @@ export default function Home() {
           {activeThreadId ? (
             <ChatInterface key={activeThreadId} threadId={activeThreadId} />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-slate-50">
+            <div className="absolute inset-0 flex items-center justify-center bg-slate-50 dark:bg-slate-900">
               <div className="flex flex-col items-center gap-4">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 <p className="text-muted-foreground text-sm">Initializing consultation...</p>
