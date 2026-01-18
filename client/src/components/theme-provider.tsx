@@ -12,6 +12,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.classList.remove("light", "dark");
     root.classList.add(theme);
     localStorage.setItem("theme", theme);
+    // Explicitly set the color scheme for system-level elements
+    root.style.colorScheme = theme;
   }, [theme]);
 
   const toggleTheme = () => {

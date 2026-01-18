@@ -7,6 +7,7 @@ import { Menu, MessageSquarePlus } from "lucide-react";
 import { useRoute, useLocation } from "wouter";
 import { useCreateThread, useThreads } from "@/hooks/use-legal-chat";
 import { ThemeToggle } from "@/components/theme-provider";
+import { cn } from "@/lib/utils";
 
 export default function Home() {
   const [match, params] = useRoute("/thread/:id");
@@ -14,6 +15,7 @@ export default function Home() {
   const { mutate: createThread, isPending: isCreating } = useCreateThread();
   const { data: threads, isLoading: isLoadingThreads } = useThreads();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // If we are at root ("/") and have threads, redirect to most recent.
   // If no threads, create one automatically.
@@ -33,12 +35,27 @@ export default function Home() {
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden font-sans">
       {/* Desktop Sidebar */}
-      <div className="hidden md:block w-80 h-full flex-shrink-0">
+      <div className={cn(
+        "hidden md:block h-full flex-shrink-0 transition-all duration-300 ease-in-out border-r border-border",
+        sidebarCollapsed ? "w-0 opacity-0 overflow-hidden border-r-0" : "w-80 opacity-100"
+      )}>
         <ChatSidebar className="h-full w-full" />
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-full min-w-0">
+      <div className="flex-1 flex flex-col h-full min-w-0 relative">
+        {/* Desktop Collapse Toggle */}
+        <div className="hidden md:flex absolute top-4 left-4 z-50">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="rounded-full bg-background/80 backdrop-blur shadow-sm border border-border"
+          >
+            <Menu className="h-4 w-4" />
+          </Button>
+        </div>
+
         {/* Mobile Header */}
         <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-background">
           <div className="flex items-center gap-2">
