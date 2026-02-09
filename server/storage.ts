@@ -4,14 +4,14 @@ import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
   // User Auth
-  getUser(id: number): Promise<User | undefined>;
+  getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
   // Threads
   createThread(thread: InsertThread): Promise<Thread>;
   getThread(id: number): Promise<Thread | undefined>;
-  getThreads(userId?: number): Promise<Thread[]>;
+  getThreads(userId?: string): Promise<Thread[]>;
   updateThread(id: number, data: Partial<Thread>): Promise<Thread>;
   deleteThread(id: number): Promise<void>;
 
@@ -23,13 +23,13 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async getUser(id: number): Promise<User | undefined> {
+  async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db.select().from(users).where(eq(users.email, username));
     return user;
   }
 
@@ -48,7 +48,7 @@ export class DatabaseStorage implements IStorage {
     return thread;
   }
 
-  async getThreads(userId?: number): Promise<Thread[]> {
+  async getThreads(userId?: string): Promise<Thread[]> {
     const query = db.select().from(threads);
     if (userId) {
       return await query.where(eq(threads.userId, userId)).orderBy(desc(threads.createdAt));

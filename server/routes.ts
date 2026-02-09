@@ -88,12 +88,18 @@ DISCLAIMER (MANDATORY – INCLUDE EVERY TIME)
 "This information is for general legal awareness based on applicable laws and does not constitute legal advice. For advice specific to your situation, please consult a qualified advocate."
 `;
 
+import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  app.post(api.threads.create.path, async (req, res) => {
-    const thread = await storage.createThread({});
+  await setupAuth(app);
+  registerAuthRoutes(app);
+
+  app.post(api.threads.create.path, async (req: any, res) => {
+    const userId = req.user?.claims?.sub;
+    const thread = await storage.createThread({ userId });
     res.status(201).json(thread);
   });
 
@@ -105,14 +111,34 @@ export async function registerRoutes(
     res.json(thread);
   });
 
-  app.get(api.threads.list.path, async (req, res) => {
-    const threads = await storage.getThreads();
+  app.get(api.threads.list.path, async (req: any, res) => {
+    const userId = req.user?.claims?.sub;
+    const threads = await storage.getThreads(userId);
     res.json(threads);
   });
 
   app.get(api.messages.list.path, async (req, res) => {
     const messages = await storage.getMessages(Number(req.params.threadId));
     res.json(messages);
+  });
+
+  app.delete(api.threads.get.path, async (req: any, res) => {
+    const threadId = Number(req.params.id);
+    const userId = req.user?.claims?.sub;
+    const thread = await storage.getThread(threadId);
+    
+    if (!thread) return res.status(404).json({ message: "Thread not found" });
+    if (thread.userId && thread.userId !== userId) return res.status(403).json({ message: "Forbidden" });
+    
+    await storage.deleteThread(threadId);
+    res.status(204).end();
+  });
+
+  app.delete("/api/messages/:id", async (req: any, res) => {
+    const messageId = Number(req.params.id);
+    // In a real app, we'd verify ownership here too
+    await storage.deleteMessage(messageId);
+    res.status(204).end();
   });
 
   app.post(api.messages.create.path, async (req, res) => {

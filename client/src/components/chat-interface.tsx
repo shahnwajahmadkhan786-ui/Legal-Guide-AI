@@ -3,10 +3,13 @@ import { useMessages, useSendMessage } from "@/hooks/use-legal-chat";
 import { MessageBubble, LoadingBubble } from "@/components/message-bubble";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Gavel, Scale } from "lucide-react";
+import { Send, Gavel, Scale, Trash2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/hooks/use-auth";
+import { useQueryClient } from "@tanstack/react-query";
+import { api } from "@shared/routes";
 
 interface ChatInterfaceProps {
   threadId: number;
@@ -17,6 +20,7 @@ export function ChatInterface({ threadId }: ChatInterfaceProps) {
   const { mutate: sendMessage, isPending } = useSendMessage(threadId);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -61,9 +65,27 @@ export function ChatInterface({ threadId }: ChatInterfaceProps) {
               <div className="w-16 h-16 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Gavel className="w-8 h-8 text-primary" />
               </div>
-              <h2 className="text-2xl font-serif font-bold text-foreground">
-                How can LegalAI assist you?
-              </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-serif font-bold text-foreground">
+              How can LegalAI assist you?
+            </h2>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (confirm("Are you sure you want to delete this entire conversation?")) {
+                    fetch(`/api/threads/${threadId}`, { method: 'DELETE' })
+                      .then(() => window.location.href = "/");
+                  }
+                }}
+                className="text-muted-foreground hover:text-destructive"
+                title="Delete Conversation"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
               <p className="text-muted-foreground max-w-md mx-auto">
                 I can explain global laws, constitutions, and legal procedures in your preferred language.
               </p>
@@ -88,9 +110,17 @@ export function ChatInterface({ threadId }: ChatInterfaceProps) {
           {messages?.map((msg) => (
             <MessageBubble 
               key={msg.id}
+              id={msg.id}
               role={msg.role as 'user' | 'assistant'} 
               content={msg.content}
               createdAt={msg.createdAt!}
+              onDelete={(id) => {
+                fetch(`/api/messages/${id}`, { method: 'DELETE' })
+                  .then(() => {
+                    // Refresh messages
+                    queryClient.invalidateQueries({ queryKey: [api.messages.list.path, threadId] });
+                  });
+              }}
             />
           ))}
 

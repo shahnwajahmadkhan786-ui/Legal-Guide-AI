@@ -1,16 +1,19 @@
 import ReactMarkdown from 'react-markdown';
 import { cn } from "@/lib/utils";
-import { User, Scale, Bot } from "lucide-react";
+import { User, Scale, Bot, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 interface MessageBubbleProps {
   role: 'user' | 'assistant';
   content: string;
   createdAt?: string | Date;
+  id?: number;
+  onDelete?: (id: number) => void;
 }
 
-export function MessageBubble({ role, content, createdAt }: MessageBubbleProps) {
+export function MessageBubble({ role, content, createdAt, id, onDelete }: MessageBubbleProps) {
   const isUser = role === 'user';
 
   return (
@@ -19,7 +22,7 @@ export function MessageBubble({ role, content, createdAt }: MessageBubbleProps) 
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        "flex w-full gap-4 max-w-4xl mx-auto mb-8",
+        "flex w-full gap-4 max-w-4xl mx-auto mb-8 group",
         isUser ? "flex-row-reverse" : "flex-row"
       )}
     >
@@ -33,7 +36,7 @@ export function MessageBubble({ role, content, createdAt }: MessageBubbleProps) 
 
       {/* Content */}
       <div className={cn(
-        "flex flex-col max-w-[85%]",
+        "flex flex-col max-w-[85%] relative",
         isUser ? "items-end" : "items-start"
       )}>
         <div className={cn(
@@ -56,6 +59,21 @@ export function MessageBubble({ role, content, createdAt }: MessageBubbleProps) 
           )}
         </div>
         
+        {isUser && onDelete && id && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              if (confirm("Delete this message?")) {
+                onDelete(id);
+              }
+            }}
+            className="absolute -left-10 top-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+
         {/* Timestamp */}
         <span className="text-[11px] text-muted-foreground mt-2 px-1">
           {role === 'assistant' ? 'Legal Assistant • ' : 'You • '}

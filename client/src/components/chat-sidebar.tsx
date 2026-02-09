@@ -1,30 +1,62 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Plus, MessageSquare, Scale } from "lucide-react";
+import { Plus, MessageSquare, Scale, LogIn, LogOut, User } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useThreads, useCreateThread } from "@/hooks/use-legal-chat";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 export function ChatSidebar({ className }: { className?: string }) {
   const [location] = useLocation();
   const { data: threads, isLoading } = useThreads();
   const { mutate: createThread, isPending: isCreating } = useCreateThread();
+  const { user, isAuthenticated, logout } = useAuth();
 
   return (
-    <div className={cn("flex flex-col h-full bg-slate-50 border-r border-border/50", className)}>
+    <div className={cn("flex flex-col h-full bg-slate-50 dark:bg-slate-900 border-r border-border/50", className)}>
       {/* Header */}
       <div className="p-6 border-b border-border/50">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-            <Scale className="w-6 h-6 text-primary-foreground" />
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+              <Scale className="w-6 h-6 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="font-serif font-bold text-lg leading-tight text-foreground">LegalAI</h1>
+              <p className="text-xs text-muted-foreground font-medium">Global Legal Assistant</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-serif font-bold text-lg leading-tight text-foreground">LegalAI</h1>
-            <p className="text-xs text-muted-foreground font-medium">Global Legal Assistant</p>
+          
+          <div className="flex items-center gap-2">
+            {isAuthenticated ? (
+              <Button variant="ghost" size="icon" onClick={() => logout()} title="Logout">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button variant="ghost" size="icon" asChild title="Login">
+                <a href="/api/login"><LogIn className="h-4 w-4" /></a>
+              </Button>
+            )}
           </div>
         </div>
+
+        {isAuthenticated && (
+          <div className="flex items-center gap-3 p-3 mb-4 bg-muted/50 rounded-lg border border-border/50">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              {user?.profileImageUrl ? (
+                <img src={user.profileImageUrl} alt="Profile" className="w-8 h-8 rounded-full" />
+              ) : (
+                <User className="w-4 h-4 text-primary" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium truncate">{user?.firstName || user?.email || "User"}</p>
+              <p className="text-[10px] text-muted-foreground">Logged In</p>
+            </div>
+          </div>
+        )}
         
         <Button 
           onClick={() => createThread()} 
