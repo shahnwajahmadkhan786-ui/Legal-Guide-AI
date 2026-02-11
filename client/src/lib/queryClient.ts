@@ -1,5 +1,8 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+// API Base URL for production
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://legal-guide-ai-1.onrender.com";
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -29,8 +32,7 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
-      credentials: "include",
+    const res = await fetch(`${API_BASE_URL}/${queryKey.join("/")}`, {      credentials: "include",
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
