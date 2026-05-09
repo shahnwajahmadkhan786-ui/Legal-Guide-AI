@@ -136,7 +136,7 @@ export async function registerRoutes(
     // Call OpenAI
     try {
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gemini-1.5-flash",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           ...messages,
@@ -157,7 +157,7 @@ export async function registerRoutes(
       if (thread && !thread.title) {
         // Generate a title based on the first message
          const titleCompletion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
+            model: "gemini-1.5-flash-mini",
             messages: [
                 { role: "system", content: "Generate a very short (3-5 words) title for this legal query." },
                 { role: "user", content: content }
