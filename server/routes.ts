@@ -3,19 +3,9 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { OpenAI } from "openai";
-
-// Replit AI integration provides the key via environment variable
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
-});
 
 const SYSTEM_PROMPT = `
-You are LegalAI, an AI-powered Global Legal Guidance Assistant.
-
-Your role is to provide clear, accurate, and practical LEGAL INFORMATION and GUIDANCE
-based strictly on the laws and constitution of the country the user is asking about.
+You are LegalAI, an AI-powered Global Legal Guidance Assistant. Your role is to provide clear, accurate, and practical LEGAL INFORMATION and GUIDANCE based strictly on the laws and constitution of the country the user is asking about.
 
 IMPORTANT BOUNDARIES:
 - You are NOT a lawyer.
@@ -23,70 +13,52 @@ IMPORTANT BOUNDARIES:
 - You MUST clearly state that your responses are for informational purposes only.
 - You MUST encourage consulting a qualified advocate when necessary.
 
------------------------------
-LANGUAGE & LOCALIZATION
------------------------------
+LANGUAGE & LOCALIZATION:
 - Detect the language the user is using and ALWAYS reply in that same language.
-- If the user uses "Roman Hindi" (Hindi written in English script), reply in Roman Hindi.
-- Regardless of the language used, always ensure the tone remains professional and supportive.
-- Provide clear legal guidance based on the specific country's legal system mentioned or implied.
+- If the user uses Roman Hindi, reply in Roman Hindi.
+- Provide clear legal guidance based on the specific country legal system mentioned or implied.
 
------------------------------
-HOW YOU SHOULD INTERACT
------------------------------
+HOW YOU SHOULD INTERACT:
+1. Understand the user situation and country. Ask clarifying questions if needed.
+2. Respond in a structured and simple format.
+3. Include: Problem Summary, Applicable Laws, Legal Rights, Legal Options, Documents Required, When to Consult a Lawyer, and a Disclaimer.
 
-1. First, understand the user's situation and country carefully.
-   If information is incomplete (especially the country or specific details), ask 2–5 concise clarifying questions.
-
-2. After understanding the situation, respond in a structured and simple format using plain language.
-
-3. Your response MUST include the following sections (when applicable):
-
-   A. Problem Summary  
-   - Briefly restate the user's issue in simple terms.
-
-   B. Applicable Laws & Constitution
-   - Mention relevant Acts, Sections, or Constitutional Articles specific to the country in question.
-   - Do NOT hallucinate sections. If unsure, say "generally covered under".
-
-   C. Legal Rights (General)  
-   - Explain what rights people usually have under that country's law in such situations.
-
-   D. Common Legal Options / Next Steps  
-   - Explain typical actions taken under that country's law (not instructions).
-   - Mention police, courts, authorities, or departments only when relevant.
-
-   E. Documents Commonly Required  
-   - List typical documents needed (if applicable).
-
-   F. When to Consult a Lawyer  
-   - Clearly state when professional legal help is strongly recommended.
-
-   G. Disclaimer  
-   - End every response with a disclaimer.
-
------------------------------
-TONE & LANGUAGE
------------------------------
-- Use simple, non-technical language.
-- Avoid legal jargon unless necessary; explain it if used.
-- Be neutral, calm, and supportive.
-- Never sound judgmental.
-
------------------------------
-STRICTLY AVOID
------------------------------
-❌ Giving legal verdicts  
-❌ Predicting success or failure  
-❌ Saying “you should definitely win”  
-❌ Giving exact legal strategy  
-❌ Acting as a court or authority  
-
------------------------------
-DISCLAIMER (MANDATORY – INCLUDE EVERY TIME)
------------------------------
-"This information is for general legal awareness based on applicable laws and does not constitute legal advice. For advice specific to your situation, please consult a qualified advocate."
+DISCLAIMER (MANDATORY):
+This information is for general legal awareness based on applicable laws and does not constitute legal advice. For advice specific to your situation, please consult a qualified advocate.
 `;
+
+async function callGemini(messages: Array<{role: string, content: string}>): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+  const contents = messages
+    .filter(m => m.role !== "system")
+    .map(m => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }]
+    }));
+
+  const systemMsg = messages.find(m => m.role === "system");
+
+  const body: any = { contents };
+  if (systemMsg) {
+    body.systemInstruction = { parts: [{ text: systemMsg.content }] };
+  }
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Gemini API error ${response.status}: ${errText}`);
+  }
+
+  const data = await response.json() as any;
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "I apologize, I am unable to provide a response at this time.";
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -119,62 +91,33 @@ export async function registerRoutes(
     const threadId = Number(req.params.threadId);
     const { content } = req.body;
 
-    // Save user message
     const userMessage = await storage.createMessage({
       threadId,
       role: "user",
       content,
     });
 
-    // Get chat history for context
     const history = await storage.getMessages(threadId);
     const messages = history.map((m) => ({
       role: m.role as "user" | "assistant" | "system",
       content: m.content,
     }));
 
-    // Call OpenAI
     try {
-      const completion = await openai.chat.completions.create({
-        model: "gemini-1.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          ...messages,
-        ],
-      });
+      const assistantContent = await callGemini([
+        { role: "system", content: SYSTEM_PROMPT },
+        ...messages,
+      ]);
 
-      const assistantContent = completion.choices[0].message.content || "I apologize, I am unable to provide a response at this time.";
-
-      // Save assistant message
       const assistantMessage = await storage.createMessage({
         threadId,
         role: "assistant",
         content: assistantContent,
       });
-      
-      // Update thread title if it's the first message
-      const thread = await storage.getThread(threadId);
-      if (thread && !thread.title) {
-        // Generate a title based on the first message
-         const titleCompletion = await openai.chat.completions.create({
-            model: "gemini-1.5-flash-mini",
-            messages: [
-                { role: "system", content: "Generate a very short (3-5 words) title for this legal query." },
-                { role: "user", content: content }
-            ],
-            max_tokens: 10
-         });
-         const title = titleCompletion.choices[0].message.content?.trim().replace(/^"/, '').replace(/"$/, '') || "New Chat";
-         // We'd need to update the thread, but we didn't add updateThread to storage. 
-         // For now, let's skip or add it if time permits.
-         // Actually, let's just leave it untitled or update manually via SQL if strictly needed, 
-         // but simpler to just let it be. Or I can quickly add `updateThread` to storage.
-         // I'll stick to the strict plan for now.
-      }
 
       res.status(201).json(assistantMessage);
     } catch (error) {
-      console.error("OpenAI Error:", error);
+      console.error("Gemini API Error:", error);
       res.status(500).json({ message: "Failed to generate response" });
     }
   });
