@@ -4,8 +4,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 
-const SYSTEM_PROMPT = `
-You are LegalAI, an AI-powered Global Legal Guidance Assistant. Your role is to provide clear, accurate, and practical LEGAL INFORMATION and GUIDANCE based strictly on the laws and constitution of the country the user is asking about.
+const SYSTEM_PROMPT = `You are LegalAI, an AI-powered Global Legal Guidance Assistant. Your role is to provide clear, accurate, and practical LEGAL INFORMATION and GUIDANCE based strictly on the laws and constitution of the country the user is asking about.
 
 IMPORTANT BOUNDARIES:
 - You are NOT a lawyer.
@@ -21,29 +20,25 @@ LANGUAGE & LOCALIZATION:
 HOW YOU SHOULD INTERACT:
 1. Understand the user situation and country. Ask clarifying questions if needed.
 2. Respond in a structured and simple format.
-3. Include: Problem Summary, Applicable Laws, Legal Rights, Legal Options, Documents Required, When to Consult a Lawyer, and a Disclaimer.
+3. Include sections: Problem Summary, Applicable Laws, Legal Rights, Legal Options, Documents Required, When to Consult a Lawyer, and a Disclaimer.
 
-DISCLAIMER (MANDATORY):
-This information is for general legal awareness based on applicable laws and does not constitute legal advice. For advice specific to your situation, please consult a qualified advocate.
-`;
+DISCLAIMER (MANDATORY - include every time): This information is for general legal awareness based on applicable laws and does not constitute legal advice. For advice specific to your situation, please consult a qualified advocate.`;
 
-async function callGemini(messages: Array<{role: string, content: string}>): Promise<string> {
+async function callGemini(userMessages: Array<{role: string, content: string}>): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
-  const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
-  const contents = messages
-    .filter(m => m.role !== "system")
-    .map(m => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }]
-    }));
+  const contents = userMessages.map(m => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }]
+  }));
 
-  const systemMsg = messages.find(m => m.role === "system");
-
-  const body: any = { contents };
-  if (systemMsg) {
-    body.systemInstruction = { parts: [{ text: systemMsg.content }] };
-  }
+  const body = {
+    system_instruction: {
+      parts: [{ text: SYSTEM_PROMPT }]
+    },
+    contents
+  };
 
   const response = await fetch(url, {
     method: "POST",
@@ -91,23 +86,22 @@ export async function registerRoutes(
     const threadId = Number(req.params.threadId);
     const { content } = req.body;
 
-    const userMessage = await storage.createMessage({
+    await storage.createMessage({
       threadId,
       role: "user",
       content,
     });
 
     const history = await storage.getMessages(threadId);
-    const messages = history.map((m) => ({
-      role: m.role as "user" | "assistant" | "system",
-      content: m.content,
-    }));
+    const messages = history
+      .filter(m => m.role === "user" || m.role === "assistant")
+      .map(m => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      }));
 
     try {
-      const assistantContent = await callGemini([
-        { role: "system", content: SYSTEM_PROMPT },
-        ...messages,
-      ]);
+      const assistantContent = await callGemini(messages);
 
       const assistantMessage = await storage.createMessage({
         threadId,
