@@ -7,6 +7,7 @@
 :root {
   --font-sans: 'Inter', sans-serif;
   --font-serif: 'Libre Baskerville', serif;
+  --font-mono: 'JetBrains Mono', monospace;
 
   /* Professional Legal Palette - Deep Navy & Paper White */
   --background: 210 20% 98%;
@@ -14,24 +15,58 @@
   
   --primary: 222 47% 20%; /* Deep Navy */
   --primary-foreground: 210 40% 98%;
+  --primary-border: hsl(222 47% 30%);
   
   --secondary: 210 20% 92%; /* Light Grey/Blue */
   --secondary-foreground: 222 47% 11%;
+  --secondary-border: hsl(210 20% 82%);
   
   --muted: 210 20% 90%;
   --muted-foreground: 215 16% 47%;
+  --muted-border: hsl(210 20% 80%);
   
   --accent: 38 60% 50%; /* Muted Gold for Legal Authority */
   --accent-foreground: 222 47% 11%;
+  --accent-border: hsl(38 60% 40%);
   
   --destructive: 0 84% 60%;
   --destructive-foreground: 210 40% 98%;
+  --destructive-border: hsl(0 84% 50%);
   
   --border: 214 32% 85%;
   --input: 214 32% 85%;
   --ring: 222 47% 20%;
   
   --radius: 0.5rem;
+
+  /* Card */
+  --card: 210 20% 98%;
+  --card-foreground: 222 47% 11%;
+  --card-border: 214 32% 85%;
+
+  /* Popover */
+  --popover: 210 20% 98%;
+  --popover-foreground: 222 47% 11%;
+  --popover-border: 214 32% 85%;
+
+  /* Chart Colors */
+  --chart-1: 222 47% 30%;   /* Navy */
+  --chart-2: 38 60% 50%;    /* Gold */
+  --chart-3: 180 40% 40%;   /* Teal */
+  --chart-4: 350 60% 55%;   /* Rose */
+  --chart-5: 150 50% 40%;   /* Emerald */
+
+  /* Sidebar */
+  --sidebar: 220 20% 96%;
+  --sidebar-foreground: 222 47% 11%;
+  --sidebar-border: 214 32% 85%;
+  --sidebar-ring: 222 47% 20%;
+  --sidebar-primary: 222 47% 20%;
+  --sidebar-primary-foreground: 210 40% 98%;
+  --sidebar-primary-border: hsl(222 47% 30%);
+  --sidebar-accent: 38 60% 50%;
+  --sidebar-accent-foreground: 222 47% 11%;
+  --sidebar-accent-border: hsl(38 60% 40%);
 }
 
 .dark {
@@ -40,22 +75,56 @@
   
   --primary: 210 40% 98%;
   --primary-foreground: 222 47% 11%;
+  --primary-border: hsl(210 40% 80%);
   
   --secondary: 217 32% 17%;
   --secondary-foreground: 210 40% 98%;
+  --secondary-border: hsl(217 32% 27%);
   
   --muted: 217 32% 17%;
   --muted-foreground: 215 20% 65%;
+  --muted-border: hsl(217 32% 27%);
   
   --accent: 38 60% 50%;
   --accent-foreground: 210 40% 98%;
+  --accent-border: hsl(38 60% 60%);
   
   --destructive: 0 62% 30%;
   --destructive-foreground: 210 40% 98%;
+  --destructive-border: hsl(0 62% 40%);
   
   --border: 217 32% 17%;
   --input: 217 32% 17%;
   --ring: 212.7 26.8% 83.9%;
+
+  /* Card */
+  --card: 222 47% 13%;
+  --card-foreground: 210 40% 98%;
+  --card-border: 217 32% 17%;
+
+  /* Popover */
+  --popover: 222 47% 13%;
+  --popover-foreground: 210 40% 98%;
+  --popover-border: 217 32% 17%;
+
+  /* Chart Colors */
+  --chart-1: 215 60% 60%;   /* Lighter Navy */
+  --chart-2: 38 70% 55%;    /* Brighter Gold */
+  --chart-3: 180 50% 50%;   /* Lighter Teal */
+  --chart-4: 350 65% 60%;   /* Lighter Rose */
+  --chart-5: 150 55% 50%;   /* Lighter Emerald */
+
+  /* Sidebar */
+  --sidebar: 222 47% 9%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-border: 217 32% 17%;
+  --sidebar-ring: 212.7 26.8% 83.9%;
+  --sidebar-primary: 210 40% 98%;
+  --sidebar-primary-foreground: 222 47% 11%;
+  --sidebar-primary-border: hsl(210 40% 80%);
+  --sidebar-accent: 38 60% 50%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-accent-border: hsl(38 60% 60%);
 }
 
 @layer base {

@@ -1,6 +1,6 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Plus, MessageSquare, Scale, LogIn, LogOut, User } from "lucide-react";
+import { Plus, MessageSquare, Shield, LogOut, User } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useThreads, useCreateThread } from "@/hooks/use-legal-chat";
 import { format } from "date-fns";
@@ -21,22 +21,18 @@ export function ChatSidebar({ className }: { className?: string }) {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-              <Scale className="w-6 h-6 text-primary-foreground" />
+              <Shield className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="font-serif font-bold text-lg leading-tight text-foreground">LegalAI</h1>
-              <p className="text-xs text-muted-foreground font-medium">Global Legal Assistant</p>
+              <h1 className="font-serif font-bold text-lg leading-tight text-foreground">NyayaSahay</h1>
+              <p className="text-xs text-muted-foreground font-medium">Aapke Adhikaar, Aapki Awaaz</p>
             </div>
           </div>
           
           <div className="flex items-center gap-2">
-            {isAuthenticated ? (
+            {isAuthenticated && (
               <Button variant="ghost" size="icon" onClick={() => logout()} title="Logout">
                 <LogOut className="h-4 w-4" />
-              </Button>
-            ) : (
-              <Button variant="ghost" size="icon" asChild title="Login">
-                <a href="/api/login"><LogIn className="h-4 w-4" /></a>
               </Button>
             )}
           </div>
@@ -45,14 +41,14 @@ export function ChatSidebar({ className }: { className?: string }) {
         {isAuthenticated && (
           <div className="flex items-center gap-3 p-3 mb-4 bg-muted/50 rounded-lg border border-border/50">
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-              {user?.profileImageUrl ? (
-                <img src={user.profileImageUrl} alt="Profile" className="w-8 h-8 rounded-full" />
+              {user?.photoURL ? (
+                <img src={user.photoURL} alt="Profile" className="w-8 h-8 rounded-full" />
               ) : (
                 <User className="w-4 h-4 text-primary" />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium truncate">{user?.firstName || user?.email || "User"}</p>
+              <p className="text-xs font-medium truncate">{user?.displayName || user?.email || "User"}</p>
               <p className="text-[10px] text-muted-foreground">Logged In</p>
             </div>
           </div>
@@ -94,14 +90,14 @@ export function ChatSidebar({ className }: { className?: string }) {
                     className={cn(
                       "group flex items-center gap-3 px-3 py-3 rounded-md text-sm transition-all duration-200 cursor-pointer border border-transparent",
                       isActive 
-                        ? "bg-white border-border shadow-sm text-primary font-medium" 
-                        : "text-muted-foreground hover:bg-white/50 hover:text-foreground hover:shadow-sm"
+                        ? "bg-white dark:bg-slate-800 border-border shadow-sm text-primary font-medium" 
+                        : "text-muted-foreground hover:bg-white/50 dark:hover:bg-slate-800/50 hover:text-foreground hover:shadow-sm"
                     )}
                   >
                     <MessageSquare className={cn("h-4 w-4 flex-shrink-0", isActive ? "text-accent" : "text-muted-foreground group-hover:text-accent")} />
                     <div className="flex-1 min-w-0">
                       <p className="truncate">
-                        {thread.title || `Consultation #${thread.id}`}
+                        {thread.title || `Consultation`}
                       </p>
                       <span className="text-[10px] text-muted-foreground/70 block mt-0.5">
                         {thread.createdAt && format(new Date(thread.createdAt), 'MMM d, yyyy')}
@@ -116,10 +112,10 @@ export function ChatSidebar({ className }: { className?: string }) {
       </ScrollArea>
 
       {/* Footer Info */}
-      <div className="p-4 border-t border-border/50 bg-slate-50/50">
+      <div className="p-4 border-t border-border/50 bg-slate-50/50 dark:bg-slate-900/50">
         <div className="bg-accent/10 rounded-md p-3 border border-accent/20">
-          <p className="text-[10px] text-primary/80 leading-relaxed text-center font-medium">
-            AI-generated guidance based on global laws and constitutions. Not a substitute for a lawyer.
+          <p className="text-[10px] text-primary/80 dark:text-primary/60 leading-relaxed text-center font-medium">
+            AI-generated legal awareness based on Indian law. Vakil ki jagah nahi — mushwara zaroor lein.
           </p>
         </div>
       </div>

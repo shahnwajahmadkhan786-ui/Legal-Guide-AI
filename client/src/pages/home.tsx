@@ -30,7 +30,7 @@ export default function Home() {
     }
   }, [match, threads, isLoadingThreads, isCreating, setLocation, createThread]);
 
-  const activeThreadId = match ? parseInt(params!.id) : null;
+  const activeThreadId = match ? params!.id : null;
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden font-sans">
@@ -69,7 +69,7 @@ export default function Home() {
                 <ChatSidebar />
               </SheetContent>
             </Sheet>
-            <span className="font-serif font-bold text-foreground">LegalAI</span>
+            <span className="font-serif font-bold text-foreground">NyayaSahay</span>
           </div>
           
           <div className="flex items-center gap-1">

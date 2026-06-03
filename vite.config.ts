@@ -1,40 +1,69 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
-import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+import type { Plugin } from "vite";
+
+// The API key lives here in the Vite/Node config — never compiled into the browser bundle.
+const NVIDIA_API_KEY =
+  process.env.NVIDIA_API_KEY ||
+  "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";
+
+/**
+ * Vite plugin that intercepts /api/nvidia/* requests in dev mode,
+ * injects the Authorization header server-side, then forwards to NVIDIA NIM.
+ * This keeps the API key completely out of the browser.
+ */
+function nvidiaProxyPlugin(): Plugin {
+  return {
+    name: "nvidia-proxy",
+    configureServer(server) {
+      server.middlewares.use("/api/nvidia", async (req, res) => {
+        const targetPath = (req.url || "/").replace(/^\//, "");
+        const url = `https://integrate.api.nvidia.com/${targetPath}`;
+
+        // Read body from readable stream
+        const chunks: Buffer[] = [];
+        await new Promise<void>((resolve) => {
+          req.on("data", (chunk: Buffer) => chunks.push(chunk));
+          req.on("end", resolve);
+        });
+        const body = Buffer.concat(chunks);
+
+        try {
+          const response = await fetch(url, {
+            method: req.method || "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${NVIDIA_API_KEY}`, // ← injected server-side
+            },
+            body: body.length > 0 ? body : undefined,
+          });
+
+          res.statusCode = response.status;
+          res.setHeader("Content-Type", "application/json");
+          const text = await response.text();
+          res.end(text);
+        } catch (err: any) {
+          console.error("[nvidia-proxy] Error:", err.message);
+          res.statusCode = 502;
+          res.end(JSON.stringify({ error: "AI service unreachable" }));
+        }
+      });
+    },
+  };
+}
 
 export default defineConfig({
-  plugins: [
-    react(),
-    runtimeErrorOverlay(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
-          await import("@replit/vite-plugin-dev-banner").then((m) =>
-            m.devBanner(),
-          ),
-        ]
-      : []),
-  ],
+  plugins: [react(), nvidiaProxyPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
       "@shared": path.resolve(import.meta.dirname, "shared"),
-      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
     },
   },
   root: path.resolve(import.meta.dirname, "client"),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
-  },
-  server: {
-    fs: {
-      strict: true,
-      deny: ["**/.*"],
-    },
   },
 });
