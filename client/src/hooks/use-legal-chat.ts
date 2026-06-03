@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { sendGeminiMessage, generateThreadTitle, type ChatMessage } from "@/hooks/use-gemini";
+import { trackEvent } from "@/lib/supabase-client";
 
 // ============ Types ============
 
@@ -195,6 +196,9 @@ export function useSendMessage(threadId: string) {
         messages.push(userMsg);
         saveMessages(user.uid, threadId, messages);
         window.dispatchEvent(new Event("legalai-storage-update"));
+
+        // Track analytics
+        trackEvent("message_sent", { userId: user.uid, email: user.email });
 
         // 2. Build history for AI (C3: rate limiting and validation already in sendGeminiMessage)
         const history: ChatMessage[] = messages.slice(0, -1).map((m) => ({

@@ -1,100 +1,107 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import {
-  auth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut as localSignOut,
-  updateProfile,
-  setPersistence,
-  browserLocalPersistence,
-  type User as LocalUser,
-} from "@/lib/firebase";
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import { supabase, trackEvent } from "@/lib/supabase-client";
+import type { User as SupabaseUser, Session } from "@supabase/supabase-js";
 
-export interface AuthUser {
+// ── Public user shape (used throughout the app) ──────────────────────────────
+
+export interface AppUser {
   uid: string;
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
+  phone: string | null;
 }
 
-interface AuthContextType {
-  user: AuthUser | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, displayName?: string) => Promise<void>;
-  logout: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | null>(null);
-
-function localUserToAuthUser(u: LocalUser): AuthUser {
+function mapUser(su: SupabaseUser | null): AppUser | null {
+  if (!su) return null;
   return {
-    uid: u.uid,
-    email: u.email,
-    displayName: u.displayName,
-    photoURL: u.photoURL,
+    uid: su.id,
+    email: su.email || null,
+    displayName:
+      su.user_metadata?.full_name ||
+      su.user_metadata?.name ||
+      su.email?.split("@")[0] ||
+      su.phone ||
+      null,
+    photoURL: su.user_metadata?.avatar_url || null,
+    phone: su.phone || null,
   };
 }
 
-/**
- * AuthProvider – wraps the entire app so all components share one auth state.
- * Uses the local-storage auth shim (no Firebase required).
- */
+// ── Context ──────────────────────────────────────────────────────────────────
+
+interface AuthContextValue {
+  user: AppUser | null;
+  isLoading: boolean;
+  signOut: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextValue>({
+  user: null,
+  isLoading: true,
+  signOut: async () => {},
+});
+
+export function useAuth() {
+  return useContext(AuthContext);
+}
+
+// ── Provider ─────────────────────────────────────────────────────────────────
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // setPersistence is a no-op in the shim; we call it for API compatibility.
-    setPersistence(auth, browserLocalPersistence)
-      .then(() => {
-        const unsubscribe = auth.onAuthStateChanged((localUser) => {
-          setUser(localUser ? localUserToAuthUser(localUser) : null);
-          setIsLoading(false);
+    // 1. Check existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(mapUser(session?.user ?? null));
+      setIsLoading(false);
+      if (session?.user) {
+        trackEvent("session_start", {
+          auth_method: session.user.app_metadata?.provider || "email",
         });
-        return unsubscribe;
-      })
-      .catch(() => setIsLoading(false));
+      }
+    });
+
+    // 2. Listen for auth state changes (login, logout, token refresh, OAuth redirect)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (event: string, session: Session | null) => {
+        const newUser = mapUser(session?.user ?? null);
+        setUser(newUser);
+        setIsLoading(false);
+
+        if (event === "SIGNED_IN" && newUser) {
+          trackEvent("login", {
+            auth_method: session?.user?.app_metadata?.provider || "email",
+            email: newUser.email,
+          });
+        }
+        if (event === "SIGNED_OUT") {
+          trackEvent("logout");
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
-  }, []);
-
-  const signup = useCallback(async (email: string, password: string, displayName?: string) => {
-    const { user: newUser } = await createUserWithEmailAndPassword(auth, email, password);
-    if (displayName) {
-      await updateProfile(newUser, { displayName });
-      setUser(localUserToAuthUser({ ...newUser, displayName }));
-    }
-  }, []);
-
-  const logout = useCallback(async () => {
-    await localSignOut(auth);
-  }, []);
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        login,
-        signup,
-        logout,
-      }}
-    >
+    <AuthContext.Provider value={{ user, isLoading, signOut }}>
       {children}
     </AuthContext.Provider>
   );
-}
-
-/** Hook to access auth state – must be used inside <AuthProvider> */
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
 }

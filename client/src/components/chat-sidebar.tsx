@@ -1,6 +1,6 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Plus, MessageSquare, Shield, LogOut, User } from "lucide-react";
+import { Plus, MessageSquare, Shield, LogOut, User, BarChart3 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useThreads, useCreateThread } from "@/hooks/use-legal-chat";
 import { format } from "date-fns";
@@ -12,7 +12,7 @@ export function ChatSidebar({ className }: { className?: string }) {
   const [location] = useLocation();
   const { data: threads, isLoading } = useThreads();
   const { mutate: createThread, isPending: isCreating } = useCreateThread();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, signOut } = useAuth();
 
   return (
     <div className={cn("flex flex-col h-full bg-slate-50 dark:bg-slate-900 border-r border-border/50", className)}>
@@ -25,13 +25,18 @@ export function ChatSidebar({ className }: { className?: string }) {
             </div>
             <div>
               <h1 className="font-serif font-bold text-lg leading-tight text-foreground">NyayaSahay</h1>
-              <p className="text-xs text-muted-foreground font-medium">Aapke Adhikaar, Aapki Awaaz</p>
+              <p className="text-xs text-muted-foreground font-medium">Your Rights, Your Voice</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            {isAuthenticated && (
-              <Button variant="ghost" size="icon" onClick={() => logout()} title="Logout">
+          <div className="flex items-center gap-1">
+            <Link href="/admin">
+              <Button variant="ghost" size="icon" title="Admin Dashboard">
+                <BarChart3 className="h-4 w-4" />
+              </Button>
+            </Link>
+            {user && (
+              <Button variant="ghost" size="icon" onClick={() => signOut()} title="Logout">
                 <LogOut className="h-4 w-4" />
               </Button>
             )}
@@ -115,7 +120,7 @@ export function ChatSidebar({ className }: { className?: string }) {
       <div className="p-4 border-t border-border/50 bg-slate-50/50 dark:bg-slate-900/50">
         <div className="bg-accent/10 rounded-md p-3 border border-accent/20">
           <p className="text-[10px] text-primary/80 dark:text-primary/60 leading-relaxed text-center font-medium">
-            AI-generated legal awareness based on Indian law. Vakil ki jagah nahi — mushwara zaroor lein.
+            AI-generated legal awareness based on Indian law. Not a substitute for a lawyer — always consult one.
           </p>
         </div>
       </div>

@@ -4,13 +4,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import AuthPage from "@/pages/auth-page";
+import AdminPage from "@/pages/admin-page";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Loader2 } from "lucide-react";
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -23,7 +24,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     return <Redirect to="/auth" />;
   }
 
@@ -31,7 +32,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 }
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -47,7 +48,10 @@ function Router() {
   return (
     <Switch>
       <Route path="/auth">
-        {isAuthenticated ? <Redirect to="/" /> : <AuthPage />}
+        {user ? <Redirect to="/" /> : <AuthPage />}
+      </Route>
+      <Route path="/admin">
+        <AdminPage />
       </Route>
       <Route path="/">
         <AuthGuard><Home /></AuthGuard>

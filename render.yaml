@@ -2,7 +2,7 @@ services:
   - type: web
     name: nyayasahay
     runtime: node
-    region: singapore   # Closest to India for lowest latency
+    region: singapore
     plan: free
     buildCommand: npm install && npm run build
     startCommand: node server.js
@@ -10,4 +10,12 @@ services:
       - key: NODE_ENV
         value: production
       - key: NVIDIA_API_KEY
-        sync: false   # You will paste this manually in the Render dashboard
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
