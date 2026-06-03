@@ -43,7 +43,7 @@ export function ChatSidebar({ className }: { className?: string }) {
           </div>
         </div>
 
-        {isAuthenticated && (
+        {user && (
           <div className="flex items-center gap-3 p-3 mb-4 bg-muted/50 rounded-lg border border-border/50">
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
               {user?.photoURL ? (
