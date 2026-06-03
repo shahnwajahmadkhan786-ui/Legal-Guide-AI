@@ -10,6 +10,9 @@ import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Loader2 } from "lucide-react";
 
+// ── Only the founder can access /admin ───────────────────────────────────────
+const ADMIN_EMAIL = "shahnwajahmad345@gmail.com";
+
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
 
@@ -26,6 +29,25 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return <Redirect to="/auth" />;
+  }
+
+  return <>{children}</>;
+}
+
+function AdminGuard({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Not logged in or not the admin → redirect to home
+  if (!user || user.email !== ADMIN_EMAIL) {
+    return <Redirect to="/" />;
   }
 
   return <>{children}</>;
@@ -51,7 +73,7 @@ function Router() {
         {user ? <Redirect to="/" /> : <AuthPage />}
       </Route>
       <Route path="/admin">
-        <AdminPage />
+        <AdminGuard><AdminPage /></AdminGuard>
       </Route>
       <Route path="/">
         <AuthGuard><Home /></AuthGuard>

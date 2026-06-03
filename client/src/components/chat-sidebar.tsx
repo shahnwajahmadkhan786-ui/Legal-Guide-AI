@@ -30,11 +30,13 @@ export function ChatSidebar({ className }: { className?: string }) {
           </div>
           
           <div className="flex items-center gap-1">
-            <Link href="/admin">
-              <Button variant="ghost" size="icon" title="Admin Dashboard">
-                <BarChart3 className="h-4 w-4" />
-              </Button>
-            </Link>
+            {user?.email === "shahnwajahmad345@gmail.com" && (
+              <Link href="/admin">
+                <Button variant="ghost" size="icon" title="Admin Dashboard">
+                  <BarChart3 className="h-4 w-4" />
+                </Button>
+              </Link>
+            )}
             {user && (
               <Button variant="ghost" size="icon" onClick={() => signOut()} title="Logout">
                 <LogOut className="h-4 w-4" />
