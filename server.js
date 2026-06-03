@@ -69,9 +69,10 @@ app.use("/api/nvidia", async (req, res) => {
   const targetPath = req.url.replace(/^\//, "");
   const url = `https://integrate.api.nvidia.com/${targetPath}`;
 
-  const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  const body = Buffer.concat(chunks);
+  // req.body is already parsed by express.json() middleware
+  const body = req.body && Object.keys(req.body).length > 0
+    ? JSON.stringify(req.body)
+    : undefined;
 
   try {
     const response = await fetch(url, {
@@ -80,7 +81,7 @@ app.use("/api/nvidia", async (req, res) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${NVIDIA_API_KEY}`,
       },
-      body: body.length > 0 ? body : undefined,
+      body,
     });
     res.status(response.status);
     res.setHeader("Content-Type", "application/json");
