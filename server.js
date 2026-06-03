@@ -212,7 +212,8 @@ app.get("/api/admin/stats", async (_req, res) => {
 
 const distPath = path.join(__dirname, "dist");
 app.use(express.static(distPath));
-app.get("*", (_req, res) => {
+// SPA fallback — all unknown routes return index.html (handles React Router)
+app.get("/{*splat}", (_req, res) => {
   res.sendFile(path.join(distPath, "index.html"));
 });
 
