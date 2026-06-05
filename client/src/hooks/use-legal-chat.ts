@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { sendGeminiMessage, generateThreadTitle, type ChatMessage } from "@/hooks/use-gemini";
 import { trackEvent } from "@/lib/supabase-client";
+import { incrementGuestQueries } from "@/lib/guest-limit";
 
 // ============ Types ============
 
@@ -19,9 +20,24 @@ export interface Message {
   createdAt: Date | null;
 }
 
+// ============ Guest UID ============
+
+const GUEST_UID_KEY = "nyayasahay_guest_uid";
+
+function getEffectiveUid(userUid: string | undefined): string {
+  if (userUid) return userUid;
+  // Generate a persistent guest ID
+  let guestUid = localStorage.getItem(GUEST_UID_KEY);
+  if (!guestUid) {
+    guestUid = `guest_${crypto.randomUUID()}`;
+    localStorage.setItem(GUEST_UID_KEY, guestUid);
+  }
+  return guestUid;
+}
+
 // ============ Storage Helpers ============
 
-const MAX_THREADS = 50; // H6 — cap at 50 threads per user
+const MAX_THREADS = 50;
 
 function getThreadsKey(uid: string) {
   return `legalai_threads_${uid}`;
@@ -45,12 +61,10 @@ function loadThreads(uid: string): Thread[] {
 }
 
 function saveThreads(uid: string, threads: Thread[]) {
-  // H6: sort by most recent first, then prune to cap
   const sorted = [...threads].sort(
     (a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)
   );
   const pruned = sorted.slice(0, MAX_THREADS);
-  // Also clean up localStorage for pruned threads
   const prunedIds = sorted.slice(MAX_THREADS).map((t) => t.id);
   prunedIds.forEach((id) => localStorage.removeItem(getMessagesKey(uid, id)));
   localStorage.setItem(getThreadsKey(uid), JSON.stringify(pruned));
@@ -77,19 +91,13 @@ function saveMessages(uid: string, threadId: string, messages: Message[]) {
 
 export function useThreads() {
   const { user } = useAuth();
+  const uid = getEffectiveUid(user?.uid);
   const [threads, setThreads] = useState<Thread[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      setThreads([]);
-      setIsLoading(false);
-      return;
-    }
-
-    // H4: call inline — do NOT include a refresh callback in deps to avoid loops
     const load = () => {
-      const loaded = loadThreads(user.uid);
+      const loaded = loadThreads(uid);
       loaded.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
       setThreads(loaded);
     };
@@ -97,25 +105,23 @@ export function useThreads() {
     load();
     setIsLoading(false);
 
-    // Listen for updates from other hooks (create, delete, title changes)
     window.addEventListener("legalai-storage-update", load);
     return () => window.removeEventListener("legalai-storage-update", load);
-  }, [user]); // H4: only user in deps — no refresh function reference
+  }, [uid]);
 
   return { data: threads, isLoading };
 }
 
 export function useCreateThread() {
   const { user } = useAuth();
+  const uid = getEffectiveUid(user?.uid);
   const [, setLocation] = useLocation();
   const [isPending, setIsPending] = useState(false);
 
   const mutate = useCallback(async () => {
-    if (!user) return;
     setIsPending(true);
     try {
-      const threads = loadThreads(user.uid);
-      // L3: number the thread until AI title generates
+      const threads = loadThreads(uid);
       const threadNumber = threads.length + 1;
       const newThread: Thread = {
         id: crypto.randomUUID(),
@@ -123,30 +129,30 @@ export function useCreateThread() {
         createdAt: new Date(),
       };
       threads.unshift(newThread);
-      saveThreads(user.uid, threads);
+      saveThreads(uid, threads);
       setLocation(`/thread/${newThread.id}`);
       window.dispatchEvent(new Event("legalai-storage-update"));
     } finally {
       setIsPending(false);
     }
-  }, [user, setLocation]);
+  }, [uid, setLocation]);
 
   return { mutate, isPending };
 }
 
 export function useDeleteThread() {
   const { user } = useAuth();
+  const uid = getEffectiveUid(user?.uid);
 
   return useCallback(
     async (threadId: string) => {
-      if (!user) return;
-      const threads = loadThreads(user.uid);
+      const threads = loadThreads(uid);
       const filtered = threads.filter((t) => t.id !== threadId);
-      saveThreads(user.uid, filtered);
-      localStorage.removeItem(getMessagesKey(user.uid, threadId));
+      saveThreads(uid, filtered);
+      localStorage.removeItem(getMessagesKey(uid, threadId));
       window.dispatchEvent(new Event("legalai-storage-update"));
     },
-    [user]
+    [uid]
   );
 }
 
@@ -154,37 +160,40 @@ export function useDeleteThread() {
 
 export function useMessages(threadId: string) {
   const { user } = useAuth();
+  const uid = getEffectiveUid(user?.uid);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!user || !threadId) {
+    if (!threadId) {
       setMessages([]);
       setIsLoading(false);
       return;
     }
-    const load = () => setMessages(loadMessages(user.uid, threadId));
+    const load = () => setMessages(loadMessages(uid, threadId));
     load();
     setIsLoading(false);
 
     window.addEventListener("legalai-storage-update", load);
     return () => window.removeEventListener("legalai-storage-update", load);
-  }, [user, threadId]);
+  }, [uid, threadId]);
 
   return { data: messages, isLoading };
 }
 
 export function useSendMessage(threadId: string) {
   const { user } = useAuth();
+  const uid = getEffectiveUid(user?.uid);
+  const isGuest = !user;
   const [isPending, setIsPending] = useState(false);
 
   const mutate = useCallback(
     async (content: string) => {
-      if (!user || !threadId) return;
+      if (!threadId) return;
       setIsPending(true);
 
       try {
-        const messages = loadMessages(user.uid, threadId);
+        const messages = loadMessages(uid, threadId);
 
         // 1. Save user message
         const userMsg: Message = {
@@ -194,13 +203,16 @@ export function useSendMessage(threadId: string) {
           createdAt: new Date(),
         };
         messages.push(userMsg);
-        saveMessages(user.uid, threadId, messages);
+        saveMessages(uid, threadId, messages);
         window.dispatchEvent(new Event("legalai-storage-update"));
 
-        // Track analytics
-        trackEvent("message_sent", { userId: user.uid, email: user.email });
+        // Track analytics + guest query count
+        if (isGuest) {
+          incrementGuestQueries();
+        }
+        trackEvent("message_sent", { userId: uid, email: user?.email || "guest" });
 
-        // 2. Build history for AI (C3: rate limiting and validation already in sendGeminiMessage)
+        // 2. Build history for AI
         const history: ChatMessage[] = messages.slice(0, -1).map((m) => ({
           role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
           parts: [{ text: m.content }],
@@ -217,40 +229,40 @@ export function useSendMessage(threadId: string) {
           createdAt: new Date(),
         };
         messages.push(assistantMsg);
-        saveMessages(user.uid, threadId, messages);
+        saveMessages(uid, threadId, messages);
         window.dispatchEvent(new Event("legalai-storage-update"));
 
-        // 5. Auto-generate a real thread title on first message (replace #N placeholder)
+        // 5. Auto-generate thread title on first message
         if (messages.length <= 2) {
           try {
             const title = await generateThreadTitle(content);
-            const threads = loadThreads(user.uid);
+            const threads = loadThreads(uid);
             const idx = threads.findIndex((t) => t.id === threadId);
             if (idx >= 0) {
               threads[idx].title = title;
-              saveThreads(user.uid, threads);
+              saveThreads(uid, threads);
               window.dispatchEvent(new Event("legalai-storage-update"));
             }
           } catch {
-            // Title generation is best-effort — leave the #N title
+            // Title generation is best-effort
           }
         }
       } catch (error) {
         console.error("Error sending message:", error);
-        const messages = loadMessages(user.uid, threadId);
+        const messages = loadMessages(uid, threadId);
         messages.push({
           id: crypto.randomUUID(),
           role: "assistant",
           content: "I encountered an error. Please try again.",
           createdAt: new Date(),
         });
-        saveMessages(user.uid, threadId, messages);
+        saveMessages(uid, threadId, messages);
         window.dispatchEvent(new Event("legalai-storage-update"));
       } finally {
         setIsPending(false);
       }
     },
-    [user, threadId]
+    [uid, threadId, isGuest, user]
   );
 
   return { mutate, isPending };
@@ -258,15 +270,15 @@ export function useSendMessage(threadId: string) {
 
 export function useDeleteMessage(threadId: string) {
   const { user } = useAuth();
+  const uid = getEffectiveUid(user?.uid);
 
   return useCallback(
     async (messageId: string) => {
-      if (!user) return;
-      const messages = loadMessages(user.uid, threadId);
+      const messages = loadMessages(uid, threadId);
       const filtered = messages.filter((m) => m.id !== messageId);
-      saveMessages(user.uid, threadId, filtered);
+      saveMessages(uid, threadId, filtered);
       window.dispatchEvent(new Event("legalai-storage-update"));
     },
-    [user, threadId]
+    [uid, threadId]
   );
 }

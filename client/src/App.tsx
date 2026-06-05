@@ -13,27 +13,6 @@ import { Loader2 } from "lucide-react";
 // ── Only the founder can access /admin ───────────────────────────────────────
 const ADMIN_EMAIL = "shahnwajahmad345@gmail.com";
 
-function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground text-sm">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Redirect to="/auth" />;
-  }
-
-  return <>{children}</>;
-}
-
 function AdminGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
 
@@ -45,7 +24,6 @@ function AdminGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Not logged in or not the admin → redirect to home
   if (!user || user.email !== ADMIN_EMAIL) {
     return <Redirect to="/" />;
   }
@@ -75,11 +53,12 @@ function Router() {
       <Route path="/admin">
         <AdminGuard><AdminPage /></AdminGuard>
       </Route>
+      {/* Home is accessible to EVERYONE — guests get 2 free queries */}
       <Route path="/">
-        <AuthGuard><Home /></AuthGuard>
+        <Home />
       </Route>
       <Route path="/thread/:id">
-        <AuthGuard><Home /></AuthGuard>
+        <Home />
       </Route>
       <Route component={NotFound} />
     </Switch>

@@ -2,12 +2,15 @@ import { useState, useRef, useEffect } from "react";
 import { useMessages, useSendMessage, useDeleteMessage } from "@/hooks/use-legal-chat";
 import { MessageBubble, LoadingBubble } from "@/components/message-bubble";
 import { VoiceButton } from "@/components/voice-button";
+import { LoginPrompt } from "@/components/login-prompt";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Shield, Scale, Trash2, Download } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useDeleteThread } from "@/hooks/use-legal-chat";
+import { useAuth } from "@/hooks/use-auth";
+import { hasGuestReachedLimit, getGuestQueryCount, FREE_LIMIT } from "@/lib/guest-limit";
 import { useLocation } from "wouter";
 import {
   AlertDialog,
@@ -39,9 +42,15 @@ export function ChatInterface({ threadId }: ChatInterfaceProps) {
   const { mutate: sendMessage, isPending } = useSendMessage(threadId);
   const deleteMessage = useDeleteMessage(threadId);
   const deleteThread = useDeleteThread();
+  const { user } = useAuth();
   const [input, setInput] = useState("");
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [, setLocation] = useLocation();
+
+  const isGuest = !user;
+  const guestQueriesUsed = getGuestQueryCount();
+  const guestQueriesLeft = Math.max(0, FREE_LIMIT - guestQueriesUsed);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -56,6 +65,12 @@ export function ChatInterface({ threadId }: ChatInterfaceProps) {
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input.trim() || isPending) return;
+
+    // Guest limit check — show login prompt on 3rd query
+    if (isGuest && hasGuestReachedLimit()) {
+      setShowLoginPrompt(true);
+      return;
+    }
     
     sendMessage(input);
     setInput("");
@@ -232,6 +247,16 @@ export function ChatInterface({ threadId }: ChatInterfaceProps) {
           </Alert>
         </div>
       </div>
+
+      {/* Guest query limit banner */}
+      {isGuest && guestQueriesLeft > 0 && (
+        <div className="absolute top-3 right-3 bg-accent/90 text-primary-foreground text-xs font-medium px-3 py-1.5 rounded-full shadow-md">
+          {guestQueriesLeft} free {guestQueriesLeft === 1 ? 'query' : 'queries'} left
+        </div>
+      )}
+
+      {/* Login prompt modal */}
+      <LoginPrompt open={showLoginPrompt} onOpenChange={setShowLoginPrompt} />
     </div>
   );
 }

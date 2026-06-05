@@ -24,7 +24,12 @@ export function ChatSidebar({ className }: { className?: string }) {
               <Shield className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="font-serif font-bold text-lg leading-tight text-foreground">NyayaSahay</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="font-serif font-bold text-lg leading-tight text-foreground">NyayaSahay</h1>
+                <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-gradient-to-r from-accent to-amber-500 text-white rounded-md shadow-sm">
+                  Beta
+                </span>
+              </div>
               <p className="text-xs text-muted-foreground font-medium">Your Rights, Your Voice</p>
             </div>
           </div>
@@ -37,10 +42,16 @@ export function ChatSidebar({ className }: { className?: string }) {
                 </Button>
               </Link>
             )}
-            {user && (
+            {user ? (
               <Button variant="ghost" size="icon" onClick={() => signOut()} title="Logout">
                 <LogOut className="h-4 w-4" />
               </Button>
+            ) : (
+              <Link href="/auth">
+                <Button variant="outline" size="sm" className="text-xs gap-1.5 h-8">
+                  <LogOut className="h-3 w-3" /> Login
+                </Button>
+              </Link>
             )}
           </div>
         </div>
